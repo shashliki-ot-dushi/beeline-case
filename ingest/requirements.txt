@@ -1,0 +1,13 @@
+fastapi
+uvicorn[standard]
+GitPython
+boto3
+qdrant-client
+sentence-transformers
+torch
+transformers
+networkx
+pydantic
+requests
+faiss-cpu
+minio

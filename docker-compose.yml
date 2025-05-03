@@ -1,0 +1,61 @@
+version: '3.8'
+
+services:
+  qdrant:
+    image: qdrant/qdrant:latest
+    ports:
+      - "6333:6333"
+      - "6334:6334"
+    volumes:
+      - qdrant_data:/qdrant/storage
+
+  minio:
+    image: quay.io/minio/minio:latest
+    ports:
+      - "9000:9000"
+      - "9001:9001"
+    command: server /data --console-address ":9001"
+    environment:
+      MINIO_ROOT_USER: vlad
+      MINIO_ROOT_PASSWORD: "Hey mom! This password is unencrypted!"
+    volumes:
+      - minio_data:/data
+
+  ingest-service:
+    build:
+      context: .                      # контекст — корень проекта
+      dockerfile: ingest_service/Dockerfile
+    command: uvicorn ingest_service:app --host 0.0.0.0 --port 8000
+    depends_on:
+      - qdrant
+      - minio
+    ports:
+      - "8000:8000"
+    environment:
+      - AWS_S3_BUCKET
+      - AWS_ACCESS_KEY_ID
+      - AWS_SECRET_ACCESS_KEY
+      - AWS_ENDPOINT_URL
+      - QDRANT_URL
+
+  rag-service:
+    build:
+      context: .                      # тоже корень
+      dockerfile: rag_service/Dockerfile
+    depends_on:
+      - qdrant
+      - minio
+    ports:
+      - "8001:8000"
+    environment:
+      - AWS_S3_BUCKET
+      - AWS_ACCESS_KEY_ID
+      - AWS_SECRET_ACCESS_KEY
+      - AWS_ENDPOINT_URL
+      - QDRANT_URL
+      - YANDEX_API_TOKEN
+      - YANDEX_API_URL
+
+volumes:
+  qdrant_data:
+  minio_data:
