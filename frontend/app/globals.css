@@ -279,3 +279,56 @@ textarea:focus {
 .main-chat-area {
   transition: margin-right 0.3s ease;
 }
+
+/* Radial gradient background for chat view */
+.bg-gradient-radial {
+  background-image: radial-gradient(
+    circle at center,
+    rgba(30, 30, 30, 0.7) 0%,
+    rgba(15, 15, 15, 0.9) 70%,
+    var(--background) 100%
+  );
+}
+
+/* Modal animations */
+@keyframes fadeIn {
+  from {
+    opacity: 0;
+  }
+  to {
+    opacity: 1;
+  }
+}
+
+@keyframes scaleIn {
+  from {
+    transform: scale(0.95);
+    opacity: 0;
+  }
+  to {
+    transform: scale(1);
+    opacity: 1;
+  }
+}
+
+.animate-fadeIn {
+  animation: fadeIn 0.2s ease-out forwards;
+}
+
+.animate-scaleIn {
+  animation: scaleIn 0.2s ease-out forwards;
+}
+
+/* Tab content transitions */
+.tab-content {
+  transition: opacity 0.3s ease;
+}
+
+.tab-content.active {
+  opacity: 1;
+}
+
+.tab-content.inactive {
+  opacity: 0;
+  display: none;
+}

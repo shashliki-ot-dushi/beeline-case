@@ -1,45 +1,35 @@
-import ChatInterface from "@/components/chat-interface"
+import { Plus } from "lucide-react"
+import ProjectCard from "@/components/project-card"
+import CreateProjectModal from "@/components/create-project-modal"
+
+// Mock project data
+const mockProjects = [
+  {
+    id: "1",
+    repoName: "requests",
+    authorName: "pfs",
+  },
+]
 
 export default function Home() {
   return (
-    <div className="flex h-screen bg-[#0f0f0f]">
-      <div className="w-64 bg-[#1a1a1a] border-r border-[#2a2a2a]">
-        <div className="p-4 flex items-center gap-2 border-b border-[#2a2a2a]">
-          <svg
-            xmlns="http://www.w3.org/2000/svg"
-            viewBox="0 0 24 24"
-            fill="none"
-            stroke="currentColor"
-            strokeWidth="2"
-            strokeLinecap="round"
-            strokeLinejoin="round"
-            className="h-5 w-5 text-[#ffd700]"
-          >
-            <polygon points="13 2 3 14 12 14 11 22 21 10 12 10 13 2" />
-          </svg>
-          <span className="font-bold text-lg text-white">CodeAI</span>
+    <div className="min-h-screen bg-[#0f0f0f]">
+      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-12">
+        <div className="flex justify-between items-center mb-8">
+          <h1 className="text-3xl font-bold text-white">Мои проекты</h1>
+          <CreateProjectModal
+            trigger={
+              <button className="flex items-center gap-2 px-4 py-2 bg-[#ffd700] text-black font-medium rounded-full hover:bg-[#e6c200] transition-colors">
+                <Plus className="h-5 w-5" />
+                Создать проект
+              </button>
+            }
+          />
         </div>
 
-        <div className="p-4">
-          <button className="flex items-center gap-2 w-full p-3 border border-[#2a2a2a] rounded-xl text-white hover:bg-[#2a2a2a] transition-colors">
-            <svg
-              xmlns="http://www.w3.org/2000/svg"
-              viewBox="0 0 24 24"
-              fill="none"
-              stroke="currentColor"
-              strokeWidth="2"
-              strokeLinecap="round"
-              strokeLinejoin="round"
-              className="h-4 w-4"
-            >
-              <line x1="12" y1="5" x2="12" y2="19" />
-              <line x1="5" y1="12" x2="19" y2="12" />
-            </svg>
-            <span>Новый чат</span>
-          </button>
-
-          <div className="mt-4 space-y-1">
-            <div className="flex items-center gap-2 p-3 rounded-xl bg-[#2a2a2a] text-white hover:text-[#FED305] transition-colors">
+        {mockProjects.length === 0 ? (
+          <div className="flex flex-col items-center justify-center py-20 text-center">
+            <div className="w-20 h-20 rounded-full bg-[rgba(255,215,0,0.1)] flex items-center justify-center mb-4">
               <svg
                 xmlns="http://www.w3.org/2000/svg"
                 viewBox="0 0 24 24"
@@ -48,71 +38,37 @@ export default function Home() {
                 strokeWidth="2"
                 strokeLinecap="round"
                 strokeLinejoin="round"
-                className="h-4 w-4"
+                className="h-10 w-10 text-[#ffd700]"
               >
-                <path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z" />
+                <path d="m18 16 4-4-4-4" />
+                <path d="m6 8-4 4 4 4" />
+                <path d="m14.5 4-5 16" />
               </svg>
-              <span className="truncate">Чат 1</span>
             </div>
-
-            <div className="flex items-center gap-2 p-3 rounded-xl text-[#a0a0a0] hover:bg-[#2a2a2a] hover:text-[#FED305] transition-colors">
-              <svg
-                xmlns="http://www.w3.org/2000/svg"
-                viewBox="0 0 24 24"
-                fill="none"
-                stroke="currentColor"
-                strokeWidth="2"
-                strokeLinecap="round"
-                strokeLinejoin="round"
-                className="h-4 w-4"
-              >
-                <path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z" />
-              </svg>
-              <span className="truncate">Чат 2</span>
-            </div>
-
-            <div className="flex items-center gap-2 p-3 rounded-xl text-[#a0a0a0] hover:bg-[#2a2a2a] hover:text-[#FED305] transition-colors">
-              <svg
-                xmlns="http://www.w3.org/2000/svg"
-                viewBox="0 0 24 24"
-                fill="none"
-                stroke="currentColor"
-                strokeWidth="2"
-                strokeLinecap="round"
-                strokeLinejoin="round"
-                className="h-4 w-4"
-              >
-                <path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z" />
-              </svg>
-              <span className="truncate">Чат 3</span>
-            </div>
+            <h2 className="text-2xl font-bold mb-2 text-white">No projects yet</h2>
+            <p className="text-[#a0a0a0] max-w-md mb-8">Create your first project to start analyzing code with AI.</p>
+            <CreateProjectModal
+              trigger={
+                <button className="flex items-center gap-2 px-6 py-3 bg-[#ffd700] text-black font-medium rounded-md hover:bg-[#e6c200] transition-colors">
+                  <Plus className="h-5 w-5" />
+                  Create Your First Project
+                </button>
+              }
+            />
           </div>
-        </div>
-
-        <div className="absolute bottom-0 left-0 w-64 p-4 border-t border-[#2a2a2a]">
-          <div className="flex items-center gap-2 text-sm text-[#a0a0a0]">
-            <svg
-              xmlns="http://www.w3.org/2000/svg"
-              viewBox="0 0 24 24"
-              fill="none"
-              stroke="currentColor"
-              strokeWidth="2"
-              strokeLinecap="round"
-              strokeLinejoin="round"
-              className="h-4 w-4"
-            >
-              <path d="m18 16 4-4-4-4" />
-              <path d="m6 8-4 4 4 4" />
-              <path d="m14.5 4-5 16" />
-            </svg>
-            <span>ИИ Анализ кода</span>
+        ) : (
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">
+            {mockProjects.map((project) => (
+              <ProjectCard
+                key={project.id}
+                id={project.id}
+                repoName={project.repoName}
+                authorName={project.authorName}
+              />
+            ))}
           </div>
-        </div>
+        )}
       </div>
-
-      <main className="flex-1 flex flex-col overflow-hidden">
-        <ChatInterface />
-      </main>
     </div>
   )
 }
