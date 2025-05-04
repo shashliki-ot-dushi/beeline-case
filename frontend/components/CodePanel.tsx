@@ -27,7 +27,7 @@ export function CodePanel({ isOpen, width, title, code, onClose, onStartResize }
       {/* Заголовок и кнопка закрытия */}
       <div className="flex items-center justify-between p-4 border-b border-[#2a2a2a]">
         <div className="flex items-center">
-          <button onClick={onClose} className="mr-3 hover:bg-[#2a2a2a] p-1 rounded-md">
+          <button onClick={onClose} className="mr-3 hover:bg-[#2a2a2a] p-1 rounded-xl">
             <ChevronRight className="h-5 w-5" />
           </button>
           <h3 className="font-medium text-white">{title}</h3>

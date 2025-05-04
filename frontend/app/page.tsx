@@ -49,7 +49,7 @@ export default function Home() {
             <p className="text-[#a0a0a0] max-w-md mb-8">Create your first project to start analyzing code with AI.</p>
             <CreateProjectModal
               trigger={
-                <button className="flex items-center gap-2 px-6 py-3 bg-[#ffd700] text-black font-medium rounded-md hover:bg-[#e6c200] transition-colors">
+                <button className="flex items-center gap-2 px-6 py-3 bg-[#ffd700] text-black font-medium rounded-xl hover:bg-[#e6c200] transition-colors">
                   <Plus className="h-5 w-5" />
                   Create Your First Project
                 </button>

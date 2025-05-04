@@ -12,7 +12,7 @@ export default function ProjectCard({ id, repoName, authorName }: ProjectCardPro
     <Link href={`/projects/${id}`} className="block">
       <div className="bg-[#1a1a1a] border border-[#2a2a2a] rounded-xl p-6 hover:border-[#ffd700] transition-colors shadow-md hover:shadow-lg">
         <div className="flex items-center gap-3 mb-4">
-          <div className="w-10 h-10 rounded-md bg-[rgba(255,215,0,0.1)] flex items-center justify-center">
+          <div className="w-10 h-10 rounded-xl bg-[rgba(255,215,0,0.1)] flex items-center justify-center">
             <GitFork className="h-5 w-5 text-[#ffd700]" />
           </div>
           <div>

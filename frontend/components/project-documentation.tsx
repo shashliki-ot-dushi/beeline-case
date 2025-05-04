@@ -19,7 +19,7 @@ export default function ProjectDocumentation() {
               placeholder="Search documentation..."
               value={searchQuery}
               onChange={(e) => setSearchQuery(e.target.value)}
-              className="w-full bg-[#121212] border border-[#333] rounded-md py-2 pl-10 pr-4 text-sm text-white placeholder-[#666] focus:outline-none focus:border-[#444]"
+              className="w-full bg-[#121212] border border-[#333] rounded-xl py-2 pl-10 pr-4 text-sm text-white placeholder-[#666] focus:outline-none focus:border-[#444]"
             />
           </div>
         </div>
@@ -27,7 +27,7 @@ export default function ProjectDocumentation() {
         <nav className="space-y-1">
           <button
             onClick={() => setActiveSection("overview")}
-            className={`w-full flex items-center gap-2 px-3 py-2 rounded-md text-sm ${
+            className={`w-full flex items-center gap-2 px-3 py-2 rounded-xl text-sm ${
               activeSection === "overview"
                 ? "bg-[#2a2a2a] text-white"
                 : "text-[#a0a0a0] hover:bg-[#2a2a2a] hover:text-white"
@@ -38,7 +38,7 @@ export default function ProjectDocumentation() {
           </button>
           <button
             onClick={() => setActiveSection("api")}
-            className={`w-full flex items-center gap-2 px-3 py-2 rounded-md text-sm ${
+            className={`w-full flex items-center gap-2 px-3 py-2 rounded-xl text-sm ${
               activeSection === "api" ? "bg-[#2a2a2a] text-white" : "text-[#a0a0a0] hover:bg-[#2a2a2a] hover:text-white"
             }`}
           >
@@ -47,7 +47,7 @@ export default function ProjectDocumentation() {
           </button>
           <button
             onClick={() => setActiveSection("components")}
-            className={`w-full flex items-center gap-2 px-3 py-2 rounded-md text-sm ${
+            className={`w-full flex items-center gap-2 px-3 py-2 rounded-xl text-sm ${
               activeSection === "components"
                 ? "bg-[#2a2a2a] text-white"
                 : "text-[#a0a0a0] hover:bg-[#2a2a2a] hover:text-white"
@@ -58,7 +58,7 @@ export default function ProjectDocumentation() {
           </button>
           <button
             onClick={() => setActiveSection("setup")}
-            className={`w-full flex items-center gap-2 px-3 py-2 rounded-md text-sm ${
+            className={`w-full flex items-center gap-2 px-3 py-2 rounded-xl text-sm ${
               activeSection === "setup"
                 ? "bg-[#2a2a2a] text-white"
                 : "text-[#a0a0a0] hover:bg-[#2a2a2a] hover:text-white"
@@ -70,7 +70,7 @@ export default function ProjectDocumentation() {
         </nav>
 
         <div className="mt-auto pt-4 border-t border-[#2a2a2a]">
-          <button className="w-full flex items-center justify-center gap-2 px-3 py-2 bg-[#2a2a2a] hover:bg-[#333] rounded-md text-sm text-white transition-colors">
+          <button className="w-full flex items-center justify-center gap-2 px-3 py-2 bg-[#2a2a2a] hover:bg-[#333] rounded-xl text-sm text-white transition-colors">
             <Download className="h-4 w-4" />
             <span>Download Docs</span>
           </button>
@@ -90,7 +90,7 @@ export default function ProjectDocumentation() {
                 </p>
               </div>
 
-              <div className="bg-[#1a1a1a] rounded-lg p-6 shadow-md">
+              <div className="bg-[#1a1a1a] rounded-xl p-6 shadow-md">
                 <h2 className="text-xl font-semibold text-white mb-4">Introduction</h2>
                 <p className="text-[#a0a0a0] mb-4">
                   This project is a code analysis platform built with Next.js and React. It provides tools for analyzing
@@ -102,7 +102,7 @@ export default function ProjectDocumentation() {
                 </p>
               </div>
 
-              <div className="bg-[#1a1a1a] rounded-lg p-6 shadow-md">
+              <div className="bg-[#1a1a1a] rounded-xl p-6 shadow-md">
                 <h2 className="text-xl font-semibold text-white mb-4">Key Features</h2>
                 <ul className="list-disc pl-5 text-[#a0a0a0] space-y-2">
                   <li>Real-time code analysis with AI-powered suggestions</li>
@@ -113,7 +113,7 @@ export default function ProjectDocumentation() {
                 </ul>
               </div>
 
-              <div className="bg-[#1a1a1a] rounded-lg p-6 shadow-md">
+              <div className="bg-[#1a1a1a] rounded-xl p-6 shadow-md">
                 <h2 className="text-xl font-semibold text-white mb-4">Tech Stack</h2>
                 <div className="grid grid-cols-2 gap-4">
                   <div>
@@ -148,19 +148,19 @@ export default function ProjectDocumentation() {
                 </p>
               </div>
 
-              <div className="bg-[#1a1a1a] rounded-lg p-6 shadow-md">
+              <div className="bg-[#1a1a1a] rounded-xl p-6 shadow-md">
                 <h2 className="text-xl font-semibold text-white mb-4">Authentication</h2>
                 <p className="text-[#a0a0a0] mb-4">
                   All API requests require authentication using a bearer token in the Authorization header.
                 </p>
-                <div className="bg-[#121212] p-4 rounded-md">
+                <div className="bg-[#121212] p-4 rounded-xl">
                   <pre className="text-sm text-[#a0a0a0]">
                     <code>{`Authorization: Bearer YOUR_API_TOKEN`}</code>
                   </pre>
                 </div>
               </div>
 
-              <div className="bg-[#1a1a1a] rounded-lg p-6 shadow-md">
+              <div className="bg-[#1a1a1a] rounded-xl p-6 shadow-md">
                 <h2 className="text-xl font-semibold text-white mb-4">Endpoints</h2>
 
                 <div className="mb-6">
@@ -169,7 +169,7 @@ export default function ProjectDocumentation() {
                     <span className="text-white font-mono text-sm">/api/chat</span>
                   </div>
                   <p className="text-[#a0a0a0] mb-3">Send a message to the AI assistant for code analysis.</p>
-                  <div className="bg-[#121212] p-4 rounded-md mb-3">
+                  <div className="bg-[#121212] p-4 rounded-xl mb-3">
                     <pre className="text-sm text-[#a0a0a0]">
                       <code>{`// Request body
 {
@@ -182,7 +182,7 @@ export default function ProjectDocumentation() {
 }`}</code>
                     </pre>
                   </div>
-                  <div className="bg-[#121212] p-4 rounded-md">
+                  <div className="bg-[#121212] p-4 rounded-xl">
                     <pre className="text-sm text-[#a0a0a0]">
                       <code>{`// Response
 {
@@ -200,7 +200,7 @@ export default function ProjectDocumentation() {
                     <span className="text-white font-mono text-sm">/api/projects/:id</span>
                   </div>
                   <p className="text-[#a0a0a0] mb-3">Retrieve details about a specific project.</p>
-                  <div className="bg-[#121212] p-4 rounded-md">
+                  <div className="bg-[#121212] p-4 rounded-xl">
                     <pre className="text-sm text-[#a0a0a0]">
                       <code>{`// Response
 {
@@ -231,12 +231,12 @@ export default function ProjectDocumentation() {
                 </p>
               </div>
 
-              <div className="bg-[#1a1a1a] rounded-lg p-6 shadow-md">
+              <div className="bg-[#1a1a1a] rounded-xl p-6 shadow-md">
                 <h2 className="text-xl font-semibold text-white mb-4">ChatInterface</h2>
                 <p className="text-[#a0a0a0] mb-4">
                   The main chat interface component that handles user interactions with the AI assistant.
                 </p>
-                <div className="bg-[#121212] p-4 rounded-md mb-4">
+                <div className="bg-[#121212] p-4 rounded-xl mb-4">
                   <pre className="text-sm text-[#a0a0a0]">
                     <code>{`import ChatInterface from "@/components/chat-interface"
 
@@ -273,10 +273,10 @@ export default function ProjectDocumentation() {
                 </div>
               </div>
 
-              <div className="bg-[#1a1a1a] rounded-lg p-6 shadow-md">
+              <div className="bg-[#1a1a1a] rounded-xl p-6 shadow-md">
                 <h2 className="text-xl font-semibold text-white mb-4">ProjectCharts</h2>
                 <p className="text-[#a0a0a0] mb-4">Component for visualizing project metrics and analytics data.</p>
-                <div className="bg-[#121212] p-4 rounded-md mb-4">
+                <div className="bg-[#121212] p-4 rounded-xl mb-4">
                   <pre className="text-sm text-[#a0a0a0]">
                     <code>{`import ProjectCharts from "@/components/project-charts"
 
@@ -324,7 +324,7 @@ export default function ProjectDocumentation() {
                 </p>
               </div>
 
-              <div className="bg-[#1a1a1a] rounded-lg p-6 shadow-md">
+              <div className="bg-[#1a1a1a] rounded-xl p-6 shadow-md">
                 <h2 className="text-xl font-semibold text-white mb-4">Prerequisites</h2>
                 <ul className="list-disc pl-5 text-[#a0a0a0] space-y-2">
                   <li>Node.js 18.0 or higher</li>
@@ -333,12 +333,12 @@ export default function ProjectDocumentation() {
                 </ul>
               </div>
 
-              <div className="bg-[#1a1a1a] rounded-lg p-6 shadow-md">
+              <div className="bg-[#1a1a1a] rounded-xl p-6 shadow-md">
                 <h2 className="text-xl font-semibold text-white mb-4">Installation</h2>
                 <ol className="list-decimal pl-5 text-[#a0a0a0] space-y-4">
                   <li>
                     <p className="mb-2">Clone the repository</p>
-                    <div className="bg-[#121212] p-4 rounded-md">
+                    <div className="bg-[#121212] p-4 rounded-xl">
                       <pre className="text-sm text-[#a0a0a0]">
                         <code>git clone https://github.com/username/code-analysis-platform.git</code>
                       </pre>
@@ -346,7 +346,7 @@ export default function ProjectDocumentation() {
                   </li>
                   <li>
                     <p className="mb-2">Install dependencies</p>
-                    <div className="bg-[#121212] p-4 rounded-md">
+                    <div className="bg-[#121212] p-4 rounded-xl">
                       <pre className="text-sm text-[#a0a0a0]">
                         <code>cd code-analysis-platform npm install</code>
                       </pre>
@@ -355,7 +355,7 @@ export default function ProjectDocumentation() {
                   <li>
                     <p className="mb-2">Set up environment variables</p>
                     <p className="mb-2">Create a .env.local file in the root directory with the following variables:</p>
-                    <div className="bg-[#121212] p-4 rounded-md">
+                    <div className="bg-[#121212] p-4 rounded-xl">
                       <pre className="text-sm text-[#a0a0a0]">
                         <code>OPENAI_API_KEY=your_openai_api_key</code>
                       </pre>
@@ -363,7 +363,7 @@ export default function ProjectDocumentation() {
                   </li>
                   <li>
                     <p className="mb-2">Start the development server</p>
-                    <div className="bg-[#121212] p-4 rounded-md">
+                    <div className="bg-[#121212] p-4 rounded-xl">
                       <pre className="text-sm text-[#a0a0a0]">
                         <code>npm run dev</code>
                       </pre>
@@ -372,12 +372,12 @@ export default function ProjectDocumentation() {
                 </ol>
               </div>
 
-              <div className="bg-[#1a1a1a] rounded-lg p-6 shadow-md">
+              <div className="bg-[#1a1a1a] rounded-xl p-6 shadow-md">
                 <h2 className="text-xl font-semibold text-white mb-4">Configuration</h2>
                 <p className="text-[#a0a0a0] mb-4">
                   Additional configuration options can be set in the config.js file:
                 </p>
-                <div className="bg-[#121212] p-4 rounded-md">
+                <div className="bg-[#121212] p-4 rounded-xl">
                   <pre className="text-sm text-[#a0a0a0]">
                     <code>{`// config.js
 module.exports = {

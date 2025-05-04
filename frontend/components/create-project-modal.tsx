@@ -111,13 +111,13 @@ export default function CreateProjectModal({ trigger }: CreateProjectModalProps)
         >
           <div
             ref={modalRef}
-            className="bg-[#1a1a1a] rounded-lg w-full max-w-md mx-4 shadow-xl border border-[#2a2a2a] animate-scaleIn"
+            className="bg-[#1a1a1a] rounded-xl w-full max-w-md mx-4 shadow-xl border border-[#2a2a2a] animate-scaleIn"
           >
             <div className="flex justify-between items-center p-4 border-b border-[#2a2a2a]">
               <h2 className="text-lg font-semibold text-white">Create New Project</h2>
               <button
                 onClick={closeModal}
-                className="text-[#a0a0a0] hover:text-white transition-colors p-1 rounded-md hover:bg-[#2a2a2a]"
+                className="text-[#a0a0a0] hover:text-white transition-colors p-1 rounded-xl hover:bg-[#2a2a2a]"
                 aria-label="Close modal"
               >
                 <X className="h-5 w-5" />
@@ -139,7 +139,7 @@ export default function CreateProjectModal({ trigger }: CreateProjectModalProps)
                     setError("")
                   }}
                   placeholder="user_name/repo_name or https://github.com/user_name/repo_name"
-                  className="w-full p-3 bg-[#121212] border border-[#333] rounded-md text-white placeholder-[#666] focus:outline-none focus:ring-1 focus:ring-[#ffd700]"
+                  className="w-full p-3 bg-[#121212] border border-[#333] rounded-xl text-white placeholder-[#666] focus:outline-none focus:ring-1 focus:ring-[#ffd700]"
                   aria-describedby="repo-input-error"
                 />
                 {error && (
@@ -160,7 +160,7 @@ export default function CreateProjectModal({ trigger }: CreateProjectModalProps)
                 <button
                   type="submit"
                   disabled={isSubmitting}
-                  className="px-4 py-2 bg-[#ffd700] text-black font-medium rounded-md hover:bg-[#e6c200] transition-colors disabled:opacity-50 disabled:cursor-not-allowed flex items-center"
+                  className="px-4 py-2 bg-[#ffd700] text-black font-medium rounded-xl hover:bg-[#e6c200] transition-colors disabled:opacity-50 disabled:cursor-not-allowed flex items-center"
                 >
                   {isSubmitting ? (
                     <>

@@ -40,7 +40,7 @@ export function MessageBubble({ message, onViewCode, onDiagramClick }: MessageBu
             return (
               <div key={idx} onClick={onDiagramClick} className="cursor-pointer">
                 {/* SVG-диаграмма */}
-                <div className="p-4 bg-[#121212] rounded-md">
+                <div className="p-4 bg-[#121212] rounded-xl">
                   <p className="text-center text-[#a0a0a0] text-sm mb-2">Click to view implementation</p>
                   {/* Здесь упрощённая отрисовка */}
                 </div>
@@ -50,7 +50,7 @@ export function MessageBubble({ message, onViewCode, onDiagramClick }: MessageBu
 
           // Обычный кодовый блок
           return (
-            <div key={idx} className="my-4 rounded-md overflow-hidden">
+            <div key={idx} className="my-4 rounded-xl overflow-hidden">
               <div className="bg-[#1e1e1e] px-4 py-1.5 text-xs text-[#a0a0a0] flex justify-between items-center">
                 <span>{lang}</span>
                 <button
