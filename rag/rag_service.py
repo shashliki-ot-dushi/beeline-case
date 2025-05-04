@@ -55,54 +55,44 @@ class QueryRequest(BaseModel):
     query: str  # Запрос для поиска схожих фрагментов кода
 
 
-def retrieve_similar_code(query: str, top_k: int = 5):
-    """Поиск схожих фрагментов кода в Qdrant и извлечение связанных фрагментов"""
-    
-    # Генерация эмбеддинга для запроса
-    query_embedding = model.encode([query], convert_to_numpy=True)
+def retrieve_similar_code(query: str, top_k: int = 5) -> List[Dict]:
+    # Генерируем эмбеддинг
+    query_emb = model.encode([query], convert_to_numpy=True)[0]
 
-    # Поиск по векторному индексу Qdrant
+    # Ищем в Qdrant с payload
     results = qdrant_client.search(
         collection_name=QDRANT_COLLECTION,
-        query_vector=query_embedding[0],
-        limit=top_k
+        query_vector=query_emb,
+        limit=top_k,
+        with_payload=["path", "name", "kind", "start_line", "end_line"]
     )
 
-    # Составляем список найденных фрагментов
-    found_fragments = []
-    for result in results:
-        fragment_id = result.id
-        score = result.score
-        fragment_meta = result.payload
-        
-        # Проверка наличия поля 'path' в метаданных
-        if 'path' not in fragment_meta:
-            logging.warning(f"Поле 'path' отсутствует для фрагмента с ID {fragment_id}.")
+    structures: List[Dict] = []
+    for pt in results:
+        meta = pt.payload or {}
+        if not all(k in meta for k in ("path", "name", "kind", "start_line", "end_line")):
+            logging.warning(f"Неполные метаданные у точки {pt.id}")
             continue
-        
-        # Извлекаем код из Minio, используя метаданные (например, путь к файлу)
-        file_path = fragment_meta['path']
-        code = get_code_from_minio(file_path)
-        
-        found_fragments.append({
-            "id": fragment_id,
-            "score": score,
-            "code": code,
-            "name": fragment_meta['name'],
-            "kind": fragment_meta['kind'],
-            "path": fragment_meta['path'],
-            "start_line": fragment_meta['start_line'],
-            "end_line": fragment_meta['end_line'],
+
+        full_code = get_code_from_minio(meta["path"])
+        lines = full_code.splitlines()
+        start, end = meta["start_line"], meta["end_line"]
+        snippet = "\n".join(lines[start-1:end])
+
+        structures.append({
+            "name": meta["name"],
+            "type": meta["kind"],
+            "code": snippet
         })
-    
-    return found_fragments
+
+    return structures
 
 
 def get_code_from_minio(file_path: str) -> str:
     """Получаем код из Minio по пути файла"""
     try:
-        # Загружаем файл из Minio
-        response = minio_client.get_object(MINIO_BUCKET, file_path)
+        key = f"repository_code/{file_path}"
+        response = minio_client.get_object(MINIO_BUCKET, key)
         code = response.read().decode('utf-8')
         return code
     except Exception as e:
@@ -110,25 +100,27 @@ def get_code_from_minio(file_path: str) -> str:
         return ""
 
 
-@app.post("/rag_query")
-async def rag(query_request: QueryRequest):
-    """API для поиска и генерации ответа с использованием RAG"""
+def build_llm_input(query: str, structures: List[Dict]) -> str:
+    prompt = [f"Запрос: {query}", "Используя следующие фрагменты кода, ответьте на запрос:\n"]
+    for idx, s in enumerate(structures, 1):
+        prompt.append(f"Фрагмент {idx}:")
+        prompt.append(f"  Name: {s['name']}")
+        prompt.append(f"  Type: {s['type']}")
+        prompt.append("  Code:")
+        prompt.append(f"```\n{s['code']}\n```")
+    prompt.append("\nПожалуйста, сформируйте развёрнутый ответ, ссылаясь на эти фрагменты.")
+    return "\n".join(prompt)
+
+
+@app.post("/rag-query")
+async def rag_query(req: QueryRequest):
     try:
-        # Получаем похожие фрагменты кода из Qdrant и Minio
-        similar_code = retrieve_similar_code(query_request.query)
-
-        # Подготовка данных для генерации ответа LLM
-        # Мы передаем код и метаданные найденных фрагментов в LLM для генерации ответа
-        code_snippets = "\n".join([f"Code: {fragment['code']}" for fragment in similar_code])
-        
-        # Для этого примера просто возвращаем найденный код
-        response = {
-            "query": query_request.query,
-            "found_code": similar_code,
-            "llm_input": f"Query: {query_request.query}\n\n{code_snippets}\n\nPlease generate an answer based on the above code."
+        structures = retrieve_similar_code(req.query)
+        llm_input = build_llm_input(req.query, structures)
+        return {
+            "query": req.query,
+            "structures": structures,
+            "llm_input": llm_input
         }
-
-        return response
-
     except Exception as e:
         raise HTTPException(status_code=500, detail=str(e))

@@ -68,43 +68,25 @@ class IngestRequest(BaseModel):
 @app.post("/ingest")
 async def ingest_repository(request: IngestRequest):
     try:
-        # Загружаем репозиторий
         repo_data = download_repository(request.repository_url)
-
-        # Разбиваем репозиторий на компоненты
         ast_data, files_info = split_repository(repo_data)
 
-        # Загружаем данные в Minio
-        json_file = json.dumps(ast_data, ensure_ascii=False)
+        # ... загрузка метаданных и Qdrant как было ...
 
-        # Используем BytesIO для передачи данных в Minio
-        json_file_stream = io.BytesIO(json_file.encode())
-
-        # Сохраняем метаинформацию в один файл
-        minio_client.put_object(
-            MINIO_BUCKET,
-            f"repository_metadata/{uuid.uuid4()}.json",  # Сохраняем метаинформацию с уникальным ID
-            json_file_stream,
-            len(json_file)
-        )
-
-        # Сохраняем .py файлы в отдельную папку с правильными путями
+        # Сохраняем .py файлы, сохраняя папки внутри ключа
         for file_info in files_info:
-            file_path = file_info["file_path"]
-            with open(file_path, 'rb') as file:
-                file_data = file.read()
-                # Сохраняем каждый .py файл в папке с именем репозитория
-                minio_client.put_object(
-                    MINIO_BUCKET,
-                    f"repository_code/{file_info['file_name']}",
-                    io.BytesIO(file_data),
-                    len(file_data)
-                )
+            with open(file_info["file_path"], 'rb') as f:
+                data = f.read()
+            # ключ будет вида "repository_code/path/to/file.py"
+            key = f"repository_code/{file_info['relative_path']}"
+            minio_client.put_object(
+                MINIO_BUCKET,
+                key,
+                io.BytesIO(data),
+                len(data)
+            )
 
-        # Убедитесь, что коллекция существует, и если нет, создайте её
         ensure_collection_exists(QDRANT_COLLECTION)
-        
-        # Вставка данных в коллекцию Qdrant
         qdrant_client.upsert(
             collection_name=QDRANT_COLLECTION,
             points=extract_vectors(ast_data)
@@ -125,23 +107,25 @@ def download_repository(url: str) -> str:
     os.system(f"git clone {url} {repo_dir}")
     return repo_dir
 
+
 def split_repository(repo_dir: str) -> dict:
     """Разбиение репозитория на AST и байткод"""
     ast_data = []
-    files_info = []  # Храним информацию о файлах
+    files_info = []
 
-    # Используем функцию extract_defs_from_file для обработки каждого файла
     for root, dirs, files in os.walk(repo_dir):
         for file in files:
             if file.endswith('.py'):
                 file_path = os.path.join(root, file)
-                fragments = extract_defs_from_file(file_path, repo_dir)  # Используем правильную функцию
+                # относительный путь от корня репозитория, с Unix-разделителями
+                rel_path = Path(file_path).relative_to(repo_dir).as_posix()
+
+                fragments = extract_defs_from_file(file_path, repo_dir)
                 ast_data.extend(fragments)
 
-                # Сохраняем информацию о файле
                 files_info.append({
-                    "file_name": file,
                     "file_path": file_path,
+                    "relative_path": rel_path,
                 })
 
     return ast_data, files_info
