@@ -1,25 +1,22 @@
-from typing import List
-import uuid
-from fastapi import FastAPI, HTTPException
-from pydantic import BaseModel
-import tempfile
-import random
-import shutil
-from git import Repo
+import os, io, ast, uuid, logging
 from pathlib import Path
+
 import numpy as np
-import boto3
-import os
+from git import Repo
+
+from fastapi import FastAPI, HTTPException, Depends
+from pydantic import BaseModel
+
 from minio import Minio
-import logging
-import json
 from qdrant_client import QdrantClient
-import io
-from qdrant_client.models import PointStruct, VectorParams, Distance
-# Импортируем ваши классы из прототипа
-from common.ast_pipeline import CacheManager, CodeParser, Indexer
-import ast  # Добавили импорт ast
+from qdrant_client.models import PointStruct
+
 from sentence_transformers import SentenceTransformer
+
+from common.s3.dependency import get_s3
+from common.qdrant.dependency import get_qdrant
+from common.qdrant.collections import ensure_collection_exists
+from common.ast.pipeline import CacheManager, CodeParser, Indexer
 
 # Инициализация приложения
 app = FastAPI()
@@ -37,36 +34,29 @@ minio_client = Minio(
     secure=False
 )
 
+QDRANT_COLLECTION = os.getenv("QDRANT_COLLECTION", "documents")
+
 # Подключение к Qdrant
 qdrant_client = QdrantClient(os.getenv('QDRANT_URL'))
 
-# Константы для хранения в Minio и Qdrant
-MINIO_BUCKET = os.getenv('AWS_S3_BUCKET')
-QDRANT_COLLECTION = 'documents'
 model = SentenceTransformer('all-MiniLM-L6-v2')  # Или другая модель по вашему выбору
 
-def ensure_collection_exists(collection_name: str):
-    """Проверяем, существует ли коллекция, и создаем её, если не существует."""
-    try:
-        collections = qdrant_client.get_collections()
-        if collection_name not in collections:
-            # Если коллекция не существует, создаем её
-            qdrant_client.create_collection(
-                collection_name=collection_name,
-                vectors_config=VectorParams(size=384, distance=Distance.COSINE)
-            )
-    except Exception as e:
-        logging.error(f"Error checking or creating collection: {e}")
-
 # Создание бакета в Minio, если его нет
+MINIO_BUCKET = os.getenv('AWS_S3_BUCKET')
 if not minio_client.bucket_exists(MINIO_BUCKET):
     minio_client.make_bucket(MINIO_BUCKET)
+
 
 class IngestRequest(BaseModel):
     repository_url: str
 
+
 @app.post("/ingest")
-async def ingest_repository(request: IngestRequest):
+async def ingest_repository(
+    request: IngestRequest,
+    minio_client: Minio = Depends(get_s3),
+    qdrant_client: QdrantClient = Depends(get_qdrant)
+):
     try:
         repo_data = download_repository(request.repository_url)
         ast_data, files_info = split_repository(repo_data)
