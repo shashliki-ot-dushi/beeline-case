@@ -20,7 +20,7 @@ app = FastAPI(title="User & Project Service (Postgres + Bearer Auth)")
 app.add_middleware(
     CORSMiddleware,
     allow_origins=["*"],
-    allow_credentials=True,
+    allow_credentials=False,
     allow_methods=["*"],
     allow_headers=["*"],
 )
@@ -75,7 +75,7 @@ def list_projects(
         .filter(Project.owner_id == user.id)
         .all()
     )
-    return [ProjectResponse(id=proj.id, name=proj.name) for proj in projects]
+    return [ProjectResponse(id=proj.id, repo_url=proj.name) for proj in projects]
 
 @app.post("/projects", response_model=ProjectResponse, status_code=201)
 def create_project(
