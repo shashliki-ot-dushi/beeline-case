@@ -6,11 +6,11 @@ WORKDIR /app
 RUN apt update && apt install -y git
 
 # Сначала ставим зависимости
-COPY ingest_service/requirements.txt ./requirements.txt
+COPY ingest/requirements.txt ./requirements.txt
 RUN pip install --no-cache-dir -r requirements.txt
 
 # Копируем код сервиса и общий пакет
-COPY ingest_service/ingest_service.py ./ingest_service.py
+COPY ingest/ingest_service.py ./ingest_service.py
 COPY common ./common
 
 # Запускаем FastAPI

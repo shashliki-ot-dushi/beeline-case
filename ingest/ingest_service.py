@@ -103,14 +103,11 @@ async def ingest_repository(request: IngestRequest):
 
         # Убедитесь, что коллекция существует, и если нет, создайте её
         ensure_collection_exists(QDRANT_COLLECTION)
-
-        # Извлекаем векторы для Qdrant
-        vector_data = extract_vectors(ast_data)
         
         # Вставка данных в коллекцию Qdrant
         qdrant_client.upsert(
             collection_name=QDRANT_COLLECTION,
-            points=vector_data
+            points=extract_vectors(ast_data)
         )
 
         return {"status": "success", "message": "Repository ingested successfully"}
@@ -197,8 +194,6 @@ def parse_bytecode(bytecode, file_path: str) -> dict:
     }
 
 def extract_vectors(ast_data: list) -> list:
-    """Извлечение векторных представлений с использованием sentence-transformers."""
-    vector_data = []
     # Собираем фрагменты кода
     texts = [item['code'] for item in ast_data]
     
@@ -206,12 +201,20 @@ def extract_vectors(ast_data: list) -> list:
     embeddings = embed_texts(texts)
 
     # Формируем точки для вставки в Qdrant
+    points = []
     for idx, item in enumerate(ast_data):
-        vector_data.append({
-            "id": str(uuid.uuid4()),
-            "vector": embeddings[idx].tolist()  # Преобразуем вектор в список для хранения в Qdrant
-        })
-    return vector_data
+        points.append(PointStruct(
+            id=str(uuid.uuid4()),
+            vector=embeddings[idx].tolist(),
+            payload={
+                "path":       item["path"],
+                "name":       item["name"],
+                "kind":       item["kind"],
+                "start_line": item["start_line"],
+                "end_line":   item["end_line"],
+            },
+        ))
+    return points
 
 def embed_texts(texts, batch_size=50):
     embeddings = []
