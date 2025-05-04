@@ -1,5 +1,3 @@
-version: '3.8'
-
 services:
   qdrant:
     image: qdrant/qdrant:latest
@@ -14,18 +12,16 @@ services:
     ports:
       - "9000:9000"
       - "9001:9001"
-    command: server /data --console-address ":9001"
     environment:
-      MINIO_ROOT_USER: vlad
-      MINIO_ROOT_PASSWORD: "Hey mom! This password is unencrypted!"
+      - MINIO_ROOT_USER
+      - MINIO_ROOT_PASSWORD
     volumes:
       - minio_data:/data
 
   ingest-service:
     build:
-      context: .                      # контекст — корень проекта
-      dockerfile: ingest_service/Dockerfile
-    command: uvicorn ingest_service:app --host 0.0.0.0 --port 8000
+      context: .
+      dockerfile: ingest/Dockerfile
     depends_on:
       - qdrant
       - minio
@@ -40,8 +36,8 @@ services:
 
   rag-service:
     build:
-      context: .                      # тоже корень
-      dockerfile: rag_service/Dockerfile
+      context: .
+      dockerfile: ./rag/Dockerfile
     depends_on:
       - qdrant
       - minio
