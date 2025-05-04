@@ -21,7 +21,7 @@ services:
   ingest-service:
     build:
       context: .
-      dockerfile: ingest/Dockerfile
+      dockerfile: ./ingest/Dockerfile
     depends_on:
       - qdrant
       - minio
