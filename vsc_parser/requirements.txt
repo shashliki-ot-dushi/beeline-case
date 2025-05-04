@@ -1,0 +1,7 @@
+gitpython
+neo4j
+networkx
+python-dotenv
+clang        
+llvmlite      
+radon         
