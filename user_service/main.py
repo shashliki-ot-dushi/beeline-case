@@ -12,17 +12,30 @@ from common.database.dependency import get_db
 from common.schemas.user import User
 from common.schemas.project import Project
 
+from fastapi.middleware.cors import CORSMiddleware
+
+# ---- APP & ENDPOINTS ----
+app = FastAPI(title="User & Project Service (Postgres + Bearer Auth)")
+
+app.add_middleware(
+    CORSMiddleware,
+    allow_origins=["*"],
+    allow_credentials=True,
+    allow_methods=["*"],
+    allow_headers=["*"],
+)
+
 
 # ---- Pydantic SCHEMAS ----
 class SessionResponse(BaseModel):
     session_token: str
 
 class ProjectCreate(BaseModel):
-    name: str
+    repo_url: str
 
 class ProjectResponse(BaseModel):
     id: uuid.UUID
-    name: str
+    repo_url: str
 
 # ---- AUTH & DEPENDENCIES ----
 
@@ -35,9 +48,6 @@ def get_current_user(
     if not user:
         raise HTTPException(status_code=401, detail="Invalid or expired token")
     return user
-
-# ---- APP & ENDPOINTS ----
-app = FastAPI(title="User & Project Service (Postgres + Bearer Auth)")
 
 @app.post("/sessions", response_model=SessionResponse)
 def create_session(db: Session = Depends(get_db)):
@@ -80,13 +90,13 @@ def create_project(
     project_id = str(uuid.uuid4())
     project = Project(
         id=project_id,
-        name=payload.name,
+        name=payload.repo_url,
         owner_id=user.id
     )
     db.add(project)
     db.commit()
     db.refresh(project)
-    return ProjectResponse(id=project.id, name=project.name)
+    return ProjectResponse(id=project.id, repo_url=project.name)
 
 @app.delete("/projects/{project_id}", status_code=204)
 def delete_project(

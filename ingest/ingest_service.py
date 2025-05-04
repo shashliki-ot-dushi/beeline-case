@@ -5,6 +5,7 @@ import numpy as np
 from git import Repo
 
 from fastapi import FastAPI, HTTPException, Depends
+from sqlalchemy.orm import Session
 from pydantic import BaseModel
 
 from minio import Minio
@@ -13,7 +14,12 @@ from qdrant_client.models import PointStruct
 
 from sentence_transformers import SentenceTransformer
 
+from common.schemas.user import User
+from common.schemas.project import Project
+
+from common.auth.dependency import get_current_user
 from common.s3.dependency import get_s3
+from common.database.dependency import get_db
 from common.qdrant.dependency import get_qdrant
 from common.qdrant.collections import ensure_collection_exists
 from common.ast.pipeline import CacheManager, CodeParser, Indexer
@@ -47,18 +53,22 @@ if not minio_client.bucket_exists(MINIO_BUCKET):
     minio_client.make_bucket(MINIO_BUCKET)
 
 
-class IngestRequest(BaseModel):
-    repository_url: str
-
-
-@app.post("/ingest")
+@app.post("/ingest/{project_id}")
 async def ingest_repository(
-    request: IngestRequest,
+    project_id: uuid.UUID,
+    user: User = Depends(get_current_user),
+    db: Session = Depends(get_db),
     minio_client: Minio = Depends(get_s3),
     qdrant_client: QdrantClient = Depends(get_qdrant)
 ):
+    project = db.query(Project).filter(Project.id == str(project_id)).first()
+    if not project or project.owner_id != user.id:
+        raise HTTPException(status_code=404, detail="Project not found")
+    if project.owner_id != user.id:
+        raise HTTPException(status_code=403, detail="Not allowed to ingest this project")
+
     try:
-        repo_data = download_repository(request.repository_url)
+        repo_data = download_repository(project.name)
         ast_data, files_info = split_repository(repo_data)
 
         # ... загрузка метаданных и Qdrant как было ...
@@ -68,7 +78,7 @@ async def ingest_repository(
             with open(file_info["file_path"], 'rb') as f:
                 data = f.read()
             # ключ будет вида "repository_code/path/to/file.py"
-            key = f"repository_code/{file_info['relative_path']}"
+            key = f"{project_id}/repository_code/{file_info['relative_path']}"
             minio_client.put_object(
                 MINIO_BUCKET,
                 key,
@@ -76,9 +86,9 @@ async def ingest_repository(
                 len(data)
             )
 
-        ensure_collection_exists(QDRANT_COLLECTION)
+        ensure_collection_exists(project_id)
         qdrant_client.upsert(
-            collection_name=QDRANT_COLLECTION,
+            collection_name=project_id,
             points=extract_vectors(ast_data)
         )
 

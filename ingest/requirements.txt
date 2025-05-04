@@ -1,5 +1,7 @@
 fastapi
 uvicorn[standard]
+sqlalchemy
+psycopg2-binary
 GitPython
 boto3
 qdrant-client
