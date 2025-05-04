@@ -4,4 +4,8 @@ gitpython
 pydantic 
 requests 
 networkx
-git
+GitPython
+python-dotenv
+sqlmodel
+psycopg2-binary>=2.9
+yandex-cloud-ml-sdk
