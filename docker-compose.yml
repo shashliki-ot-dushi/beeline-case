@@ -40,6 +40,16 @@ services:
       - 8005:8000
     restart: always
 
+  diagramparser-service:
+    build:
+      context: ./diagramParser
+    depends_on: [ postgres ]
+    environment:
+      DATABASE_URL: postgres://${POSTGRES_USER:-beeline}:${POSTGRES_PASSWORD:-beeline_pass}@postgres:5432/${POSTGRES_DB:-beeline_db}
+      # при желании можно пробросить S3 или другие vars
+    ports: ["8002:8000"]
+    restart: always
+
   ingest-service:
     build:
       context: .
@@ -73,6 +83,17 @@ services:
       - QDRANT_URL
       - YANDEX_API_TOKEN
       - YANDEX_API_URL
+
+  llm-analysis:
+    build:
+      context: ./llm_analysis
+    restart: always
+    depends_on:
+      - postgres
+    environment:
+      - DATABASE_URL=postgresql://${POSTGRES_USER:-beeline}:${POSTGRES_PASSWORD:-beeline_pass}@postgres:5432/${POSTGRES_DB:-beeline_db}
+    ports:
+      - "8003:8003"
 
 volumes:
   qdrant_data:
