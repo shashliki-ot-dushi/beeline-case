@@ -1,0 +1,12 @@
+[project]
+name = "user-management-service"
+version = "0.0.1"
+description = "A user and project management service for the code insight suite"
+requires-python = ">=3.12"
+dependencies = [
+    "fastapi==0.115.12",
+    "uvicorn[standard]==0.34.2",
+    "SQLAlchemy==2.0.40",
+    "pydantic==2.11.4",
+    "psycopg2-binary==2.9.10",
+]

@@ -19,6 +19,26 @@ services:
     volumes:
       - minio_data:/data
 
+  postgres:
+    image: postgres
+    ports:
+      - 5432:5432
+    volumes:
+      - postgres:/var/lib/postgresql
+    environment:
+      - POSTGRES_USER
+      - POSTGRES_PASSWORD
+      - POSTGRES_DB
+    restart: always
+
+  user-service:
+    build:
+      context: ./user_service
+    depends_on: [ postgres ]
+    ports:
+      - 8005:8000
+    restart: always
+
   ingest-service:
     build:
       context: .
@@ -56,3 +76,4 @@ services:
 volumes:
   qdrant_data:
   minio_data:
+  postgres:
