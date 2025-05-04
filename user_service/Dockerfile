@@ -6,10 +6,11 @@ WORKDIR /app
 
 RUN pip install uv
 
-COPY pyproject.toml ./
+COPY user_service/pyproject.toml ./pyproject.toml
 RUN uv sync
 
-COPY . .
+COPY user_service/main.py ./main.py
+COPY common ./common
 
 EXPOSE 8000
-CMD ["uv", "run", "--", "uvicorn", "app.main:app", "--host", "0.0.0.0", "--port", "8000"]
+CMD ["uv", "run", "--", "uvicorn", "main:app", "--host", "0.0.0.0", "--port", "8000"]

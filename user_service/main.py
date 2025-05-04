@@ -1,45 +1,17 @@
-import os
 import uuid
 from typing import List
 
 from fastapi import FastAPI, Depends, HTTPException, Response
-from fastapi.security import HTTPBearer, HTTPAuthorizationCredentials
-from pydantic import BaseModel, UUID4
-from sqlalchemy import (
-    create_engine, Column, String, ForeignKey
-)
-from sqlalchemy.ext.declarative import declarative_base
-from sqlalchemy.orm import sessionmaker, relationship, Session
-from dotenv import load_dotenv
+from fastapi.security import HTTPAuthorizationCredentials
+from pydantic import BaseModel
+from sqlalchemy.orm import Session
 
-DATABASE_URL = os.getenv(
-    "DATABASE_URL",
-    "postgresql://vlad:fuck_this_case!@postgres/db"
-)
 
-# ---- DATABASE SETUP ----
-engine = create_engine(DATABASE_URL)
-SessionLocal = sessionmaker(bind=engine, autoflush=False, autocommit=False)
-Base = declarative_base()
+from common.auth.dependency import security
+from common.database.dependency import get_db
+from common.schemas.user import User
+from common.schemas.project import Project
 
-class User(Base):
-    __tablename__ = "users"
-    id = Column(String, primary_key=True, index=True)
-    session_token = Column(String, unique=True, index=True)
-    projects = relationship(
-        "Project",
-        back_populates="owner",
-        cascade="all, delete-orphan"
-    )
-
-class Project(Base):
-    __tablename__ = "projects"
-    id = Column(String, primary_key=True, index=True)
-    name = Column(String, nullable=False)
-    owner_id = Column(String, ForeignKey("users.id"), nullable=False)
-    owner = relationship("User", back_populates="projects")
-
-Base.metadata.create_all(bind=engine)
 
 # ---- Pydantic SCHEMAS ----
 class SessionResponse(BaseModel):
@@ -49,18 +21,10 @@ class ProjectCreate(BaseModel):
     name: str
 
 class ProjectResponse(BaseModel):
-    id: UUID4
+    id: uuid.UUID
     name: str
 
 # ---- AUTH & DEPENDENCIES ----
-security = HTTPBearer()
-
-def get_db():
-    db = SessionLocal()
-    try:
-        yield db
-    finally:
-        db.close()
 
 def get_current_user(
     creds: HTTPAuthorizationCredentials = Depends(security),
@@ -126,7 +90,7 @@ def create_project(
 
 @app.delete("/projects/{project_id}", status_code=204)
 def delete_project(
-    project_id: UUID4,
+    project_id: uuid.UUID,
     user: User = Depends(get_current_user),
     db: Session = Depends(get_db)
 ):
