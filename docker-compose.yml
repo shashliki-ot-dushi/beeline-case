@@ -31,6 +31,17 @@ services:
       - POSTGRES_DB
     restart: always
 
+  neo4j:
+    image: neo4j:2025.04.0
+    ports:
+      - 7474:7474
+      - 7687:7687
+    environment:
+      - NEO4J_AUTH
+    volumes:
+      - neo4j:/data
+    restart: always
+
   user-service:
     build:
       context: .
@@ -38,16 +49,6 @@ services:
     depends_on: [ postgres ]
     ports:
       - 8005:8000
-    restart: always
-
-  diagramparser-service:
-    build:
-      context: ./diagramParser
-    depends_on: [ postgres ]
-    environment:
-      DATABASE_URL: postgres://${POSTGRES_USER:-beeline}:${POSTGRES_PASSWORD:-beeline_pass}@postgres:5432/${POSTGRES_DB:-beeline_db}
-      # при желании можно пробросить S3 или другие vars
-    ports: ["8002:8000"]
     restart: always
 
   ingest-service:
@@ -95,7 +96,22 @@ services:
     ports:
       - "8003:8003"
 
+  vsc_parser:
+    build:
+      context: .
+      dockerfile: ./vsc_parser/Dockerfile
+    restart: always
+    environment:
+      - NEO4J_AUTH
+      - NEO4J_URL
+    depends_on:
+      - postgres
+      - neo4j
+    ports:
+      - 8010:8000
+
 volumes:
   qdrant_data:
   minio_data:
   postgres:
+  neo4j:

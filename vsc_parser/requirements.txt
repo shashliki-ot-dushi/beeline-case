@@ -1,7 +1,14 @@
+uvicorn
+fastapi
 gitpython
 neo4j
 networkx
 python-dotenv
 clang        
 llvmlite      
-radon         
+radon
+minio
+sqlalchemy
+psycopg2-binary
+pyyaml
+tqdm

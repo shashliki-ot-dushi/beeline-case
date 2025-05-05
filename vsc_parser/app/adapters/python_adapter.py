@@ -4,7 +4,7 @@ import inspect
 from pathlib import Path
 from radon.visitors import ComplexityVisitor
 
-from adapters.base import LanguageAdapter
+from app.adapters.base import LanguageAdapter
 
 class PythonAdapter(LanguageAdapter):
     """
