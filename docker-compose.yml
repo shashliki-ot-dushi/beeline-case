@@ -121,11 +121,25 @@ services:
       - AWS_SECRET_ACCESS_KEY
       - AWS_ENDPOINT_URL
       - OPENAI_API_KEY
+      - TOOLS_URL
     depends_on:
       - postgres
       - minio
     ports:
       - 8015:8000
+
+  llm_tools:
+    build:
+      context: ./llm_tools
+    restart: always
+    environment:
+      - NEO4J_AUTH
+      - NEO4J_URL
+    depends_on:
+      - minio
+      - postgres
+    ports:
+      - 8020:8000
 
 volumes:
   qdrant_data:

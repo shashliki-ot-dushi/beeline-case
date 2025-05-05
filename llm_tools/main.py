@@ -1,3 +1,4 @@
+import os
 import traceback
 from typing import Any, Dict, List, Optional
 
@@ -6,9 +7,8 @@ from pydantic import BaseModel, Field, validator
 from neo4j import GraphDatabase
 
 # === Neo4j configuration ===
-URI = "bolt://84.54.56.225:7687"
-USER = "neo4j"
-PASSWORD = "12345678"
+URI = os.getenv("NEO4J_URL")
+USER, PASSWORD = os.getenv("NEO4J_AUTH").split("/")
 driver = GraphDatabase.driver(URI, auth=(USER, PASSWORD))
 
 # === FastAPI app ===
