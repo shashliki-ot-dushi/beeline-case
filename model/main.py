@@ -32,7 +32,7 @@ socks_proxy = httpx.Client(proxy="socks5://mathmod:whatever123@62.60.231.70:1080
 openai_client = OpenAI(api_key=OPENAI_API_KEY, http_client=socks_proxy)
 
 MODEL_NAME = "gpt-4.1"
-NEO4J_API_URL = "http://84.54.56.225:8000"
+NEO4J_PUBLIC_URL = "http://neo4j:7474"
 
 app = FastAPI(title="OpenAI o4-mini + Neo4j + Minio Self-Chat Service")
 
@@ -81,9 +81,9 @@ functions = [
 
 # === Helpers для вызова Neo4j API ===
 def call_execute_cypher(query: str, params: Dict[str, Any]) -> Dict[str, Any]:
-    logs: List[str] = [f"→ POST {NEO4J_API_URL}/cypher", f"  query: {query}", f"  params: {params}"]
+    logs: List[str] = [f"→ POST {NEO4J_PUBLIC_URL}/cypher", f"  query: {query}", f"  params: {params}"]
     try:
-        resp = httpx.post(f"{NEO4J_API_URL}/cypher", json={"query": query, "params": params}, timeout=10)
+        resp = httpx.post(f"{NEO4J_PUBLIC_URL}/cypher", json={"query": query, "params": params}, timeout=10)
         data = resp.json()
     except Exception as e:
         logs.append(f"HTTP error: {e}")
