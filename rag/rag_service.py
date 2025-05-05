@@ -3,7 +3,7 @@ from typing import List, Dict
 
 from fastapi import FastAPI, HTTPException, Depends
 from pydantic import BaseModel
-from sqlalchemy import Session
+from sqlalchemy.orm import Session
 
 from sentence_transformers import SentenceTransformer
 
@@ -55,7 +55,7 @@ def retrieve_similar_code(project: str, query: str, top_k: int = 5) -> List[Dict
             logging.warning(f"Неполные метаданные у точки {pt.id}")
             continue
 
-        full_code = get_file("repository_code", meta["path"])
+        full_code = get_file(f"{project}/repository_code", meta["path"])
         lines = full_code.splitlines()
         start, end = meta["start_line"], meta["end_line"]
         snippet = "\n".join(lines[start-1:end])
