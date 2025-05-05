@@ -7,36 +7,25 @@ from pathlib import Path
 from tqdm import tqdm
 import networkx as nx
 from neo4j import GraphDatabase
-import inspect
 
-from graph_utils import add_node, add_edge
-from adapters.base import LanguageAdapter
-from adapters.python_adapter import PythonAdapter
-from adapters.cpp_adapter import CppAdapter
+from app.graph_utils import add_node, add_edge, neo4j_query
+from app.adapters.base import LanguageAdapter
+from app.adapters.python_adapter import PythonAdapter
+from app.adapters.cpp_adapter import CppAdapter
 
-# Neo4j connection
-driver = GraphDatabase.driver(
-    "bolt://84.54.56.225:7687",
-    auth=("neo4j", "12345678")
-)
+from common.neo4j.base import get_neo4j_connection
 
-def neo4j_query(query: str, **kwargs):
-    with driver.session() as session:
-        session.run(query, **kwargs)
 
-# Локальный граф для подсчёта
+driver = get_neo4j_connection()
 G = nx.MultiDiGraph()
 
 # --- 1. Код и байткод/IR ---
-def ingest_code(base_path: Path, adapter: LanguageAdapter):
-    """
-    Универсальный парсер: сохраняет модули, структуры и выводит байткод (Python) или IR-метрики (C++).
-    """
+def ingest_code(base_path: Path, adapter: LanguageAdapter, project_uuid: str):
     files = list(adapter.find_source_files(base_path))
     for path in tqdm(files, desc=f"{adapter.__class__.__name__} files", unit="file"):
         rel = path.relative_to(base_path)
         mid = adapter.module_id(rel)
-        add_node("Module", mid, path=str(rel))
+        add_node(G, "Module", mid, project_uuid, path=str(rel))
 
         src = path.read_text(encoding="utf-8")
         tree = adapter.parse_ast(path)
@@ -45,20 +34,17 @@ def ingest_code(base_path: Path, adapter: LanguageAdapter):
         for node in adapter.walk(tree):
             if adapter.node_kind(node) == "function":
                 fid = adapter.function_id(node, mid)
-                add_node("Function", fid,
+                add_node(G, "Function", fid, project_uuid,
                          name=adapter.function_name(node),
                          lineno=adapter.node_lineno(node))
-                add_edge(mid, fid, "defines")
+                add_edge(G, mid, fid, "defines", project_uuid)
 
-                # PythonAdapter: извлечение байткода
                 if isinstance(adapter, PythonAdapter):
                     try:
-                        # вызываем адаптер, который соберёт для нас sample байткода и сложность
                         mets = adapter.extract_metrics(path, node, fid)
                         bytecode_sample = mets.get('bytecode_sample')
                         cyclo = mets.get('cyclomatic_complexity')
 
-                        # если что-то получилось — сохраняем в Neo4j и в локальный граф
                         if bytecode_sample is not None:
                             print(f"[BYTECODE SAMPLE] {fid}: {bytecode_sample}")
                             neo4j_query(
@@ -74,7 +60,6 @@ def ingest_code(base_path: Path, adapter: LanguageAdapter):
                     except Exception as e:
                         print(f"[BYTECODE ERROR] {fid}: {e}")
 
-                # CppAdapter: извлечение метрик IR с отключением opaque pointers
                 elif isinstance(adapter, CppAdapter):
                     try:
                         mets = adapter.extract_metrics(path, node, fid)
@@ -91,36 +76,35 @@ def ingest_code(base_path: Path, adapter: LanguageAdapter):
                     except Exception as e:
                         print(f"[IR METRICS ERROR] {fid}: {e}")
 
+
 # --- 2. Тесты ---
-def ingest_tests(base_path: Path):
+def ingest_tests(base_path: Path, project_uuid: str):
     for path in tqdm(base_path.rglob("test_*.py"), desc="Test files", unit="file"):
         rel = path.relative_to(base_path)
         mod_id = f"module:{rel}"
         tree = ast.parse(path.read_text(encoding="utf-8"))
-        add_node("Module", mod_id, path=str(rel))
+        add_node(G, "Module", mod_id, project_uuid, path=str(rel))
         for node in tree.body:
             if isinstance(node, ast.FunctionDef) and node.name.startswith("test_"):
                 tst_id = f"test:{node.name}@{mod_id}"
-                add_node("TestCase", tst_id, name=node.name, lineno=node.lineno)
-                add_edge(mod_id, tst_id, "defines")
+                add_node(G, "TestCase", tst_id, project_uuid,
+                         name=node.name, lineno=node.lineno)
+                add_edge(G, mod_id, tst_id, "defines", project_uuid)
                 for sub in ast.walk(node):
                     if isinstance(sub, ast.Assert):
                         step_id = f"teststep:{node.name}:{sub.lineno}@{mod_id}"
-                        add_node("TestStep", step_id, lineno=sub.lineno)
-                        add_edge(tst_id, step_id, "has_step")
+                        add_node(G, "TestStep", step_id, project_uuid, lineno=sub.lineno)
+                        add_edge(G, tst_id, step_id, "has_step", project_uuid)
             if isinstance(node, ast.ClassDef):
                 for m in node.body:
                     if isinstance(m, ast.FunctionDef) and m.name == "setUp":
                         fix_id = f"fixture:{node.name}.setUp@{mod_id}"
-                        add_node("Fixture", fix_id)
-                        add_edge(fix_id, f"test:{m.name}@{mod_id}", "defines_fixture")
+                        add_node(G, "Fixture", fix_id, project_uuid)
+                        add_edge(G, fix_id, f"test:{m.name}@{mod_id}", "defines_fixture", project_uuid)
 
-# --- 3. Runtime metrics (пустой) ---
-def ingest_runtime_metrics():
-    pass
 
-# --- 4. Документация ---
-def ingest_docs(base_path: Path):
+# --- 3. Документация ---
+def ingest_docs(base_path: Path, project_uuid: str):
     for py in tqdm(base_path.rglob("*.py"), desc="Docstrings", unit="file"):
         if any(p in ("__pycache__", ".ipynb_checkpoints") for p in py.parts):
             continue
@@ -132,8 +116,8 @@ def ingest_docs(base_path: Path):
         doc = ast.get_docstring(tree)
         if doc:
             nid = f"doc:module:{py.relative_to(base_path)}"
-            add_node("DocString", nid, text=doc)
-            add_edge(nid, module_id, "docs")
+            add_node(G, "DocString", nid, project_uuid, text=doc)
+            add_edge(G, nid, module_id, "docs", project_uuid)
         for node in tree.body:
             if isinstance(node, (ast.ClassDef, ast.FunctionDef, ast.AsyncFunctionDef)):
                 doc = ast.get_docstring(node)
@@ -141,14 +125,16 @@ def ingest_docs(base_path: Path):
                     kind = "Class" if isinstance(node, ast.ClassDef) else "Function"
                     nid = f"doc:{kind.lower()}:{node.name}@{py.relative_to(base_path)}"
                     tgt = f"{kind.lower()}:{node.name}@{module_id}"
-                    add_node("DocString", nid, text=doc)
-                    add_edge(nid, tgt, "docs")
+                    add_node(G, "DocString", nid, project_uuid, text=doc)
+                    add_edge(G, nid, tgt, "docs", project_uuid)
+
     readme = base_path / "README.md"
     if readme.exists():
         text = readme.read_text(encoding="utf-8")
         nid = f"doc:README@{readme.name}"
-        add_node("DocFile", nid, text=text)
-        add_edge(nid, f"module:.@{readme.name}", "docs")
+        add_node(G, "DocFile", nid, project_uuid, text=text)
+        add_edge(G, f"doc:README@{readme.name}", f"module:.@{readme.name}", "docs", project_uuid)
+
     for y in tqdm(base_path.rglob("*.yaml"), desc="OpenAPI specs", unit="file"):
         try:
             conf = yaml.safe_load(y.read_text(encoding="utf-8"))
@@ -156,42 +142,47 @@ def ingest_docs(base_path: Path):
             continue
         nid = f"openapi:{y.relative_to(base_path)}"
         conf_text = yaml.safe_dump(conf, default_flow_style=False)
-        add_node("OpenAPI", nid, text=conf_text)
+        add_node(G, "OpenAPI", nid, project_uuid, text=conf_text)
         for pi in conf.get("paths", {}).values():
             for det in pi.values():
                 op_id = det.get("operationId")
                 if op_id:
                     for n, d in G.nodes(data=True):
                         if d.get("type") == "Function" and d.get("name") == op_id:
-                            add_edge(nid, n, "api_implements")
+                            add_edge(G, nid, n, "api_implements", project_uuid)
                             break
 
-# --- 5. Конфиг ---
-def ingest_config(base_path: Path):
+
+# --- 4. Конфиг ---
+def ingest_config(base_path: Path, project_uuid: str):
     env_file = base_path / ".env"
     if env_file.exists():
         cfg = dotenv.dotenv_values(str(env_file))
         for k, v in cfg.items():
-            add_node("EnvVar", f"env:{k}", value=v)
+            add_node(G, "EnvVar", f"env:{k}", project_uuid, value=v)
+
     for y in tqdm(base_path.rglob("*.yml"), desc="Config files", unit="file"):
         try:
             data = yaml.safe_load(y.read_text(encoding="utf-8"))
         except Exception:
             continue
         conf_text = yaml.safe_dump(data, default_flow_style=False)
-        add_node("ConfigFile", f"cfg:{y.relative_to(base_path)}", text=conf_text)
+        add_node(G, "ConfigFile", f"cfg:{y.relative_to(base_path)}", project_uuid, text=conf_text)
 
-# --- 6. VCS ingest ---
-def ingest_vcs(base_path: Path):
+
+# --- 5. VCS ingest ---
+def ingest_vcs(base_path: Path, project_uuid: str):
     repo = git.Repo(str(base_path))
     for commit in tqdm(repo.iter_commits(), desc="Commits", unit="commit"):
         user_email = commit.author.email or "unknown@example.com"
         user_id = f"user:{user_email}"
-        add_node("User", user_id, email=user_email, name=commit.author.name or user_email)
+        add_node(G, "User", user_id, project_uuid, email=user_email, name=commit.author.name or user_email)
         cid = f"commit:{commit.hexsha}"
-        add_node("Commit", cid, hexsha=commit.hexsha, author=user_email,
+        add_node(G, "Commit", cid, project_uuid,
+                 hexsha=commit.hexsha, author=user_email,
                  date=commit.committed_datetime.isoformat(), message=commit.message.strip())
-        add_edge(user_id, cid, "authored")
+        add_edge(G, user_id, cid, "authored", project_uuid)
+
         parent = commit.parents[0] if commit.parents else None
         diffs = commit.diff(parent, create_patch=True)
         for diff in diffs:
@@ -209,20 +200,3 @@ def ingest_vcs(base_path: Path):
             """
             neo4j_query(query, cid=cid, mod_id=mod_id, insertions=insertions,
                         deletions=deletions, patch=patch_text)
-
-if __name__ == "__main__":
-    BASE = Path("/home/misha/repository_describer/simple-multifile-program")
-    if not BASE.exists() or not BASE.is_dir():
-        print(f"Ошибка: директория {BASE!r} не найдена или не является папкой.")
-        exit(1)
-
-    neo4j_query("MATCH (n) DETACH DELETE n")
-    adapter = CppAdapter()
-    ingest_code(BASE, adapter)
-    ingest_tests(BASE)
-    ingest_runtime_metrics()
-    ingest_docs(BASE)
-    ingest_config(BASE)
-    ingest_vcs(BASE)
-    print(f"Nodes: {G.number_of_nodes()}, Edges: {G.number_of_edges()}")
-    print("Граф сформирован и отправлен в Neo4j инкрементально.")

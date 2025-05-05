@@ -5,14 +5,12 @@ from pathlib import Path
 from clang.cindex import Index, CursorKind, Config
 
 import llvmlite
+from llvmlite import binding as llvm
 
 llvmlite.opaque_pointers_enabled = True
 
-from llvmlite       import binding as llvm
-
-
-from adapters.base    import LanguageAdapter
-from graph_utils      import add_node, add_edge
+from app.adapters.base    import LanguageAdapter
+from app.graph_utils      import add_node, add_edge
 
 import re
 

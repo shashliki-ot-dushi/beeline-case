@@ -6,13 +6,18 @@ from git import Repo
 import networkx as nx
 
 class StaticRepoParser:
+    """
+    Универсальный статический парсер репозитория:
+    - строит граф пакетов, модулей, классов, функций
+    - связи: contains, import, call
+    """
     def __init__(self, repo_url: str, clone_dir: str = None):
         self.repo_url = repo_url
         self.clone_dir = clone_dir or tempfile.mkdtemp()
         self.graph = nx.DiGraph()
 
     def clone_repo(self):
-        """Клонируем репозиторий"""
+        """Клонируем репозиторий в временную папку"""
         Repo.clone_from(self.repo_url, self.clone_dir)
 
     def cleanup(self):
@@ -20,89 +25,82 @@ class StaticRepoParser:
         shutil.rmtree(self.clone_dir, ignore_errors=True)
 
     def _collect_py_files(self):
+        """Находит все .py файлы, исключая tests, docs и .git"""
         for root, _, files in os.walk(self.clone_dir):
-            rel_root = os.path.relpath(root, self.clone_dir)
-            # фильтруем ненужное
-            if rel_root.startswith(("tests", "docs")):
+            # пропускаем тесты, документацию и папку .git
+            if any(skip in root for skip in ('/tests', '/docs', '/.git')):
                 continue
             for fname in files:
-                if not fname.endswith(".py"):
-                    continue
-                # оставляем только основной пакет
-                if "src/requests" not in os.path.join(rel_root, fname):
+                if not fname.endswith('.py'):
                     continue
                 yield os.path.join(root, fname)
 
     def build_graph(self):
+        """
+        Строим граф:
+        - пакеты (папки) → модули (файлы) → классы/функции
+        - связи: contains, import, call
+        """
+        # собираем все файлы
+        py_files = list(self._collect_py_files())
 
-        # 1) Собираем пути только нужных .py-файлов
-        py_files = []
-        for path in self._collect_py_files():
-            rel = os.path.relpath(path, self.clone_dir)
-            # игнорируем тесты и доки
-            if rel.startswith(("tests/", "docs/")):
-                continue
-            # только src/requests
-            if not rel.startswith(os.path.join("src", "requests")):
-                continue
-            py_files.append(path)
-
-        # 2) Добавляем узлы-пакеты и узлы-модулей
+        # 1) Узлы-пакеты и модули
         for path in py_files:
             rel = os.path.relpath(path, self.clone_dir)
             parts = rel.split(os.sep)
-            # пакет = имя папки после src/requests
-            pkg = parts[2] if len(parts) > 2 else ""
-            pkg_id = f"pkg:{pkg}" if pkg else "pkg:root"
+            pkg = parts[0] if len(parts) > 1 else 'root'
+            pkg_id = f"pkg:{pkg}"
             if not self.graph.has_node(pkg_id):
-                self.graph.add_node(pkg_id, type="package", name=pkg or "root")
+                self.graph.add_node(pkg_id, type='package', name=pkg)
 
             mod_id = f"m:{rel}"
-            self.graph.add_node(mod_id, type="module", name=rel, package=pkg_id)
-            self.graph.add_edge(pkg_id, mod_id, type="contains")
+            self.graph.add_node(mod_id,
+                                type='module',
+                                name=rel,
+                                package=pkg_id)
+            self.graph.add_edge(pkg_id, mod_id, type='contains')
 
-        # 3) Парсим AST каждого модуля и добавляем компоненты и связи
+        # 2) Парсинг AST: классы, функции, импорты и вызовы
         for path in py_files:
             rel = os.path.relpath(path, self.clone_dir)
             mod_id = f"m:{rel}"
-            src = open(path, encoding="utf-8").read()
+            src = open(path, encoding='utf-8').read()
             tree = ast.parse(src)
 
-            # ---- классы и функции ----
+            # a) классы и функции
             for node in tree.body:
-                if isinstance(node, (ast.FunctionDef, ast.AsyncFunctionDef, ast.ClassDef)):
+                if isinstance(node, (ast.ClassDef, ast.FunctionDef, ast.AsyncFunctionDef)):
                     name = node.name
-                    # пропускаем приватные
-                    if name.startswith("_"):
+                    if name.startswith('_'):
                         continue
-                    ntype = "class" if isinstance(node, ast.ClassDef) else "function"
-                    prefix = "c" if ntype == "class" else "f"
+                    ntype = 'class' if isinstance(node, ast.ClassDef) else 'function'
+                    prefix = 'c' if ntype == 'class' else 'f'
                     comp_id = f"{prefix}:{rel}:{name}"
-                    pkg_id = self.graph.nodes[mod_id]["package"]
+                    pkg_id = self.graph.nodes[mod_id]['package']
                     self.graph.add_node(comp_id,
                                         type=ntype,
                                         name=name,
                                         module=mod_id,
                                         package=pkg_id)
-                    self.graph.add_edge(comp_id, mod_id, type="contains")
+                    self.graph.add_edge(comp_id, mod_id, type='contains')
 
-            # ---- импорты модулей ----
+            # b) импорты
             for node in ast.walk(tree):
                 if isinstance(node, ast.Import):
                     for alias in node.names:
-                        tgt = alias.name.replace(".", os.sep) + ".py"
+                        tgt = alias.name.replace('.', os.sep) + '.py'
                         tgt_path = os.path.normpath(os.path.join(self.clone_dir, tgt))
                         if os.path.exists(tgt_path):
                             tgt_rel = os.path.relpath(tgt_path, self.clone_dir)
-                            self.graph.add_edge(mod_id, f"m:{tgt_rel}", type="import")
+                            self.graph.add_edge(mod_id, f"m:{tgt_rel}", type='import')
                 elif isinstance(node, ast.ImportFrom) and node.module:
-                    base = node.module.replace(".", os.sep) + ".py"
+                    base = node.module.replace('.', os.sep) + '.py'
                     tgt_path = os.path.normpath(os.path.join(self.clone_dir, base))
                     if os.path.exists(tgt_path):
                         tgt_rel = os.path.relpath(tgt_path, self.clone_dir)
-                        self.graph.add_edge(mod_id, f"m:{tgt_rel}", type="import")
+                        self.graph.add_edge(mod_id, f"m:{tgt_rel}", type='import')
 
-            # ---- вызовы функций ----
+            # c) вызовы функций
             class CallVisitor(ast.NodeVisitor):
                 def __init__(self, graph, current):
                     self.graph = graph
@@ -111,7 +109,7 @@ class StaticRepoParser:
                     if isinstance(call.func, ast.Name):
                         tgt = f"f:{rel}:{call.func.id}"
                         if self.graph.has_node(tgt):
-                            self.graph.add_edge(self.current, tgt, type="call")
+                            self.graph.add_edge(self.current, tgt, type='call')
                     self.generic_visit(call)
 
             for node in tree.body:
@@ -124,47 +122,42 @@ class StaticRepoParser:
 
         return self.graph
 
-
     def graph_to_c4(self, graph):
+        """
+        Преобразуем граф в формат C4: контейнеры, компоненты и связи
+        """
         containers = []
         components = []
         relationships = []
 
-        # Узлы → контейнеры и компоненты
+        # контейнеры = модули
         for nid, data in graph.nodes(data=True):
-            ntype = data.get("type", None)
-            # если модуль
-            if ntype == "module":
+            if data.get('type') == 'module':
                 containers.append({
-                    "id": nid,
-                    "name": data.get("name", nid),
-                    "description": ""
+                    'id': nid,
+                    'name': data.get('name', nid),
+                    'description': ''
                 })
-            # иначе — класс или функция
             else:
                 components.append({
-                    "id": nid,
-                    "name": data.get("name", nid),
-                    "description": "",
-                    "containerId": data.get("module", "")
+                    'id': nid,
+                    'name': data.get('name', nid),
+                    'description': '',
+                    'containerId': data.get('module', '')
                 })
 
-        # Рёбра → связи
+        # связи
         for u, v, data in graph.edges(data=True):
-            rel_type = data.get("type", "")
-            desc = {
-                "import": "модуль импортирует",
-                "call": "вызывает",
-                "contains": "содержит"
-            }.get(rel_type, rel_type)
+            rel_type = data.get('type', '')
+            desc = {'import': 'модуль импортирует', 'call': 'вызывает', 'contains': 'содержит'}.get(rel_type, rel_type)
             relationships.append({
-                "source": u,
-                "destination": v,
-                "description": desc
+                'source': u,
+                'destination': v,
+                'description': desc
             })
 
         return {
-            "containers": containers,
-            "components": components,
-            "relationships": relationships
+            'containers': containers,
+            'components': components,
+            'relationships': relationships
         }
