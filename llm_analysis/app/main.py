@@ -7,6 +7,7 @@ from fastapi.middleware.cors import CORSMiddleware
 from typing import Dict, Any
 from sqlalchemy.exc import SQLAlchemyError
 import time
+from uuid import UUID
 from sqlmodel import Session
 from datetime import datetime
 from app.models import RepoRequest, DiagramResponse
@@ -161,9 +162,9 @@ async def list_elements(job_id: uuid.UUID, session: Session = Depends(get_sessio
         raise HTTPException(404, detail="No elements found")
     return elems
 
-@app.get("/elements/{element_id:path}")
-async def get_element_detail(element_id: str, session: Session = Depends(get_session)):
-    elem = session.get(DiagramElement, element_id)
+@app.get("/elements/{element_id}")
+def get_element_detail(element_id: str, job_id: UUID, session: Session = Depends(get_session)):
+    elem = session.get(DiagramElement, (job_id, element_id))
     if not elem:
         raise HTTPException(404, detail="Element not found")
     return elem
